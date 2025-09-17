@@ -1,0 +1,8 @@
+flask
+flask-cors
+yfinance
+pandas
+scikit-learn
+@app.route('/')
+def serve_frontend():
+    return send_from_directory(os.path.dirname(__file__), 'frontend.html')
