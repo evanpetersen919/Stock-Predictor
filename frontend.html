@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Stock Up/Down Prediction</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    /* Animated indeterminate progress bar */
+    .progress-bar-container {
+      width: 100%;
+      background: #23242a;
+      border-radius: 4px;
+      overflow: hidden;
+      height: 8px;
+      margin: 16px 0;
+      position: relative;
+    }
+    .progress-bar {
+      width: 40%;
+      height: 100%;
+      background: linear-gradient(90deg, #444 0%, #888 60%, #444 100%);
+      border-radius: 4px;
+      position: absolute;
+      left: 0;
+      top: 0;
+      animation: progressBarMove 1.2s linear infinite;
+    }
+    @keyframes progressBarMove {
+      0% { left: -40%; }
+      100% { left: 100%; }
+    }
+      body {
+        font-family: 'Inter', 'Segoe UI', 'Helvetica Neue', Arial, 'Liberation Sans', 'system-ui', sans-serif;
+        margin: 40px;
+        background: #111216;
+        color: #e0e6ed;
+        letter-spacing: 0.01em;
+      }
+      .container {
+        max-width: 500px;
+        margin: auto;
+        background: #181a1f;
+        border-radius: 10px;
+        box-shadow: 0 2px 16px #0008;
+        padding: 32px 24px;
+      }
+      input, button {
+        padding: 10px;
+        margin: 8px 0;
+        width: 100%;
+        border-radius: 5px;
+        border: 1px solid #333a4d;
+        background: #23242a;
+        color: #e0e6ed;
+      }
+      input::placeholder {
+        color: #7a8599;
+      }
+      button {
+        background: #23242a;
+        color: #e0e6ed;
+        border: 1px solid #444;
+        font-weight: bold;
+        cursor: pointer;
+        transition: background 0.2s, color 0.2s, border 0.2s, box-shadow 0.2s, transform 0.1s;
+        box-shadow: 0 2px 8px 0 rgba(0,0,0,0.04);
+        position: relative;
+        overflow: hidden;
+      }
+      button:hover {
+        background: #33353b;
+        color: #fff;
+        border: 1px solid #888;
+        box-shadow: 0 4px 16px 0 rgba(0,0,0,0.10);
+        transform: translateY(-2px) scale(1.03);
+      }
+      button:active {
+        background: #181a1f;
+        color: #b0b6c3;
+        box-shadow: 0 1px 2px 0 rgba(0,0,0,0.08);
+        transform: scale(0.98);
+      }
+      .range-btn {
+        background: #23242a;
+        color: #b0b6c3;
+        border: 1px solid #333a4d;
+        font-weight: 500;
+        padding: 2px 10px;
+        border-radius: 16px;
+        min-width: 28px;
+        font-size: 0.95em;
+        margin: 0 2px;
+        transition: background 0.18s, color 0.18s, border 0.18s, box-shadow 0.18s, transform 0.10s;
+        box-shadow: none;
+        outline: none;
+        height: 28px;
+        line-height: 1.2;
+        letter-spacing: 0.01em;
+        white-space: nowrap;
+        position: relative;
+        overflow: hidden;
+      }
+      .range-btn.active, .range-btn:active {
+        background: #44464d;
+        color: #fff;
+        font-weight: 600;
+        border: 1px solid #888;
+        box-shadow: 0 2px 8px #2228;
+        transform: scale(1.05);
+      }
+      .range-btn:hover {
+        background: #33353b;
+        color: #fff;
+        border: 1px solid #888;
+        box-shadow: 0 4px 12px 0 rgba(0,0,0,0.10);
+        transform: translateY(-1px) scale(1.04);
+      }
+      .result {
+        margin-top: 20px;
+        font-size: 1.2em;
+        text-align: center;
+        color: #fff;
+      }
+      #chart-container {
+        margin-top: 32px;
+        background: #181a1f;
+        border-radius: 8px;
+        padding: 8px 0 0 0;
+      }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Stock Up/Down Prediction</h2>
+    <div style="font-size:0.98em;color:#b0b6c3;margin-bottom:10px;">
+      <em>Prediction is for the next trading day.</em>
+    </div>
+    <label for="ticker">Enter Stock Ticker:</label>
+    <input type="text" id="ticker" placeholder="e.g. AAPL, MSFT, TSLA, ^GSPC">
+      <label>Select Time Range:</label>
+      <div id="range-buttons" style="display:flex; flex-wrap:nowrap; gap:4px; margin-bottom:10px; overflow-x:auto;">
+        <button type="button" class="range-btn" data-range="5d">1W</button>
+        <button type="button" class="range-btn" data-range="1mo">1M</button>
+        <button type="button" class="range-btn" data-range="3mo">3M</button>
+        <button type="button" class="range-btn" data-range="6mo">6M</button>
+        <button type="button" class="range-btn" data-range="ytd">YTD</button>
+        <button type="button" class="range-btn" data-range="1y">1Y</button>
+        <button type="button" class="range-btn" data-range="2y">2Y</button>
+        <button type="button" class="range-btn" data-range="5y">5Y</button>
+        <button type="button" class="range-btn" data-range="10y">10Y</button>
+        <button type="button" class="range-btn active" data-range="all">ALL</button>
+      </div>
+    <button onclick="getPrediction()">Predict</button>
+    <div class="result" id="result"></div>
+    <div id="chart-container">
+      <canvas id="priceChart" width="400" height="250"></canvas>
+    </div>
+    <div style="color:#b0b6c3;font-size:1em;margin-top:18px;text-align:left;max-width:500px;font-family:'Inter','Segoe UI','Helvetica Neue',Arial,'Liberation Sans','system-ui',sans-serif;">
+      <ul style="margin:0 0 0 18px;padding:0 0 0 0;line-height:1.6;">
+        <li>Model: Random Forest trained on historical stock data.</li>
+        <li>Uses price, volume, and multi-period trends as features.</li>
+        <li>Predicts if the stock will go up or down tomorrow.</li>
+        <li>Probability shows model confidence (not financial advice).</li>
+      </ul>
+    </div>
+  </div>
+  <script>
+    let chart;
+      // Range button logic
+      let selectedRange = 'all';
+      document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('.range-btn').forEach(btn => {
+          btn.addEventListener('click', function() {
+            document.querySelectorAll('.range-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            selectedRange = this.getAttribute('data-range');
+            // If a ticker is entered, update the chart immediately
+            const ticker = document.getElementById('ticker').value.trim();
+            if (ticker) plotChart(ticker, selectedRange);
+          });
+        });
+      });
+    async function getPrediction() {
+      const ticker = document.getElementById('ticker').value.trim();
+        let range = selectedRange;
+      if (range === 'all') range = 'max';
+      const resultDiv = document.getElementById('result');
+  // Show animated progress bar
+  resultDiv.innerHTML = `<div class="progress-bar-container"><div class="progress-bar"></div></div>`;
+  // Store prediction result for chart color
+  window.latestPrediction = null;
+      // Fetch prediction from backend
+      try {
+        const response = await fetch('http://127.0.0.1:5000/predict', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ticker: ticker })
+        });
+        if (!response.ok) throw new Error('Prediction failed');
+        const data = await response.json();
+        const predColor = data.prediction === 'Up' ? 'green' : 'red';
+        resultDiv.innerHTML = `<b>Prediction for ${ticker}:</b> <span style="color:${predColor};font-weight:bold;">${data.prediction}</span><br>
+          <b>Probability Up:</b> <span style="color:${predColor};">${data.probability_up}%</span>`;
+        window.latestPrediction = data.prediction;
+      } catch (err) {
+  resultDiv.textContent = 'Error: ' + err.message;
+      }
+      // Fetch historical prices and plot
+      plotChart(ticker, range);
+    }
+
+    async function plotChart(ticker, range) {
+      if (range === 'all') range = 'max';
+      const chartDiv = document.getElementById('chart-container');
+      const ctx = document.getElementById('priceChart').getContext('2d');
+      chartDiv.querySelectorAll('div').forEach(e => e.remove()); // Remove error messages
+      try {
+        const resp = await fetch('http://127.0.0.1:5000/history', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ticker: ticker, range: range })
+        });
+        if (!resp.ok) throw new Error('Failed to fetch history');
+        const data = await resp.json();
+        const labels = data.dates || data.close ? data.dates : [];
+        const prices = data.prices || data.close || [];
+        if (chart) chart.destroy();
+        // Choose color based on latest prediction
+        let color = '#007aff';
+        if (window.latestPrediction === 'Up') color = '#2ecc40';
+        else if (window.latestPrediction === 'Down') color = '#ff4136';
+        chart = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: labels,
+            datasets: [{
+              label: `${ticker} Close Price`,
+              data: prices,
+              borderColor: color,
+              backgroundColor: color + '22',
+              pointRadius: 0,
+              tension: 0.2,
+              fill: true
+            }]
+          },
+          options: {
+            responsive: true,
+            plugins: {
+              legend: { display: false }
+            },
+            scales: {
+              x: {
+                display: true,
+                title: {
+                  display: true,
+                  text: 'Date',
+                  font: { weight: 'bold', size: 14 }
+                },
+                ticks: {
+                  maxTicksLimit: 8,
+                  autoSkip: true
+                }
+              },
+              y: { beginAtZero: false }
+            }
+          }
+        });
+        // Show period high/low below the chart
+        if (typeof data.period_high !== 'undefined' && typeof data.period_low !== 'undefined') {
+          chartDiv.insertAdjacentHTML('beforeend', `<div style="color:#b0b6c3;font-size:0.98em;margin-top:8px;">High: <b>${data.period_high.toFixed(2)}</b> &nbsp;|&nbsp; Low: <b>${data.period_low.toFixed(2)}</b></div>`);
+        }
+      } catch (err) {
+        if (chart) chart.destroy();
+        ctx.clearRect(0, 0, 400, 250);
+        chartDiv.insertAdjacentHTML('beforeend', `<div style="color:red;text-align:center;">Failed to load chart data.</div>`);
+      }
+    }
+  </script>
+</body>
+</html>
